@@ -44,6 +44,8 @@ export interface GuildState {
   qrScannerOpen: boolean;
   setQrScannerOpen: (open: boolean) => void;
   addStamp: () => void;
+  addXp: (amount: number) => void;
+  processBaseCheckIn: () => { success: boolean; message: string };
   completeQuest: (id: string) => void;
   spinGacha: () => GachaResult | null;
 }
@@ -148,12 +150,36 @@ const GACHA_TABLE: GachaResult[] = [
 const GuildContext = createContext<GuildState | null>(null);
 
 export function GuildProvider({ children }: { children: React.ReactNode }) {
-  const [member] = useState<Member>(INITIAL_MEMBER);
+  const [member, setMember] = useState<Member>(INITIAL_MEMBER);
   const [stamps, setStamps] = useState<boolean[]>(Array(10).fill(false));
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [gachaAvailable, setGachaAvailable] = useState(false);
   const [quests, setQuests] = useState<Quest[]>(INITIAL_QUESTS);
   const [qrScannerOpen, setQrScannerOpen] = useState(false);
+  const [lastBaseCheckIn, setLastBaseCheckIn] = useState<string | null>(null);
+
+  const addXp = useCallback((amount: number) => {
+    setMember((prev) => {
+      let newXp = prev.xp + amount;
+      let newLevel = prev.level;
+      let newMaxXp = prev.maxXp;
+
+      // レベルアップロジック
+      while (newXp >= newMaxXp) {
+        newXp -= newMaxXp;
+        newLevel += 1;
+        // 次のレベルへの必要経験値を少し増やす (例: 10%増)
+        newMaxXp = Math.floor((newMaxXp * 1.1) / 10) * 10;
+      }
+
+      return {
+        ...prev,
+        xp: newXp,
+        level: newLevel,
+        maxXp: newMaxXp,
+      };
+    });
+  }, []);
 
   const addStamp = useCallback(() => {
     setStamps((prev) => {
@@ -166,6 +192,19 @@ export function GuildProvider({ children }: { children: React.ReactNode }) {
     setIsLoggedIn(true);
     setGachaAvailable(true);
   }, []);
+
+  const processBaseCheckIn = useCallback(() => {
+    const today = new Date().toLocaleDateString();
+    if (lastBaseCheckIn === today) {
+      return { success: false, message: '本日の拠点ボーナスは既に獲得済みです！' };
+    }
+
+    addXp(2); // 経験値+2
+    addStamp(); // ログインボーナスも兼ねる
+    setLastBaseCheckIn(today);
+    
+    return { success: true, message: '拠点到着！経験値+2 ボーナス獲得！' };
+  }, [addXp, addStamp, lastBaseCheckIn]);
 
   const completeQuest = useCallback((id: string) => {
     setQuests((prev) =>
@@ -197,6 +236,8 @@ export function GuildProvider({ children }: { children: React.ReactNode }) {
         qrScannerOpen,
         setQrScannerOpen,
         addStamp,
+        addXp,
+        processBaseCheckIn,
         completeQuest,
         spinGacha,
       }}

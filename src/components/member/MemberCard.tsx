@@ -63,8 +63,10 @@ function CardFront() {
 
   return (
     <div
-      className="absolute inset-0 backface-hidden rounded-md border-4 overflow-hidden"
+      className="absolute inset-0 rounded-md border-4 overflow-hidden"
       style={{
+        backfaceVisibility: 'hidden',
+        WebkitBackfaceVisibility: 'hidden',
         background: `linear-gradient(135deg, var(--bg-card), #0a1020)`,
         border: `1px solid ${config.borderColor}`,
         boxShadow: `0 0 30px ${config.glowColor}, inset 0 0 30px rgba(0,0,0,0.3)`,
@@ -200,8 +202,10 @@ function CardBack() {
 
   return (
     <div
-      className="absolute inset-0 backface-hidden rounded-md border-4 overflow-hidden"
+      className="absolute inset-0 rounded-md border-4 overflow-hidden"
       style={{
+        backfaceVisibility: 'hidden',
+        WebkitBackfaceVisibility: 'hidden',
         transform: 'rotateY(180deg)',
         background: `linear-gradient(135deg, #0a1020, var(--bg-card))`,
         border: `1px solid ${config.borderColor}`,
@@ -229,7 +233,7 @@ function CardBack() {
               <div className="flex justify-between items-center mb-1">
                 <span className="text-[10px] font-medium text-[var(--gold-light)]">{skill.name}</span>
                 <span className="text-[10px] font-bold" style={{ color: skill.color }}>
-                  Lv.{Math.round(skill.level / 10)}
+                  Lv.{skill.level}
                 </span>
               </div>
               <div className="xp-bar h-1.5">
@@ -281,15 +285,16 @@ export default function MemberCard() {
     <div className="flex flex-col items-center gap-4">
       {/* カード本体 */}
       <div
-        className="perspective w-full max-w-sm cursor-pointer select-none"
+        className="w-full max-w-sm cursor-pointer select-none"
         onClick={() => setIsFlipped((f) => !f)}
-        style={{ height: '380px' }}
+        style={{ height: '380px', perspective: '1000px' }}
         id="member-card"
         role="button"
         aria-label="会員証をフリップ"
       >
         <motion.div
-          className="preserve-3d relative w-full h-full"
+          className="relative w-full h-full"
+          style={{ transformStyle: 'preserve-3d' }}
           animate={{ rotateY: isFlipped ? 180 : 0 }}
           transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
         >
