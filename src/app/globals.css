@@ -52,7 +52,17 @@ body {
   color: #ebdacf; /* コントラストを上げて、暗がりでも見やすい色に修正 */
   font-family: var(--font-en), var(--font-jp), "Noto Sans JP", serif;
   overflow-x: hidden;
-  
+  /* iOSでの背景拡大バグを防ぐため、背景指定は疑似要素で行う */
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
   /* ランタンの光と控えめなレンガのテクスチャを追加 
      radial-gradient: 画面のところどころに落ちるランタンの暖かい光
      svg: 主張しすぎないうっすらとしたレンガ・石畳の模様 */
@@ -63,7 +73,6 @@ body {
     url('/tavern_bg.png');
   background-size: cover;
   background-position: center;
-  background-attachment: fixed;
 }
 
 /* ============================================
