@@ -1,16 +1,17 @@
 'use client';
 
 import { useGuild } from '@/contexts/GuildContext';
-import { QrCode, Sword, Bell } from 'lucide-react';
+import { QrCode, Sword, Bell, LogIn, LogOut } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { signIn, signOut, useSession } from 'next-auth/react';
 
 export default function Header() {
   const { setQrScannerOpen, stamps, isLoggedIn } = useGuild();
+  const { data: session } = useSession();
   const stampCount = stamps.filter(Boolean).length;
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 h-16">
-      {/* 閭梧勹: 繝ｬ繝医Ο繝｡繝九Η繝ｼ鬚ｨ */}
       <div className="absolute inset-0 bg-[var(--bg-card)] border-b-4 border-[var(--border-outer)] shadow-[0_4px_0_rgba(0,0,0,0.15)]" />
 
       <div className="relative h-full max-w-5xl mx-auto px-4 flex items-center justify-between">
@@ -24,25 +25,44 @@ export default function Header() {
           </span>
         </div>
 
-        {/* 蜿ｳ蛛ｴ繧ｳ繝ｳ繝医Ο繝ｼ繝ｫ */}
+        {/* 右側コントロール */}
         <div className="flex items-center gap-3">
-          {/* 繧ｹ繧ｿ繝ｳ繝玲焚繝舌ャ繧ｸ */}
+          {/* Discordログインボタン */}
+          {session ? (
+            <button
+              onClick={() => signOut()}
+              className="px-3 py-1.5 flex items-center gap-1.5 text-xs font-bold text-slate-300 hover:text-white transition-colors"
+            >
+              <LogOut size={14} />
+              <span className="hidden sm:inline">退出</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => signIn('discord')}
+              className="px-3 py-1.5 flex items-center gap-1.5 text-xs font-bold bg-[#5865F2] text-white hover:bg-[#4752C4] transition-colors border-2 border-[#4752C4] shadow-[2px_2px_0_rgba(0,0,0,0.3)]"
+            >
+              <LogIn size={14} />
+              <span className="hidden sm:inline">Discordで入室</span>
+            </button>
+          )}
+
+          {/* スタンプ数バッジ */}
           {stampCount > 0 && (
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-[var(--bg-base)] border-2 border-[var(--border-outer)] text-xs font-bold text-[var(--gold-light)] shadow-[inset_2px_2px_0_rgba(0,0,0,0.15)]"
             >
-              <span>搭</span>
+              <span>🎫</span>
               <span>{stampCount} / 10</span>
             </motion.div>
           )}
 
-          {/* 騾夂衍繝吶Ν */}
+          {/* 通知ベル */}
           <button
             id="header-notification-btn"
             className="relative w-9 h-9 bg-[var(--bg-base)] border-2 border-[var(--border-outer)] flex items-center justify-center text-[var(--gold-light)] hover:bg-[var(--border-inner)] transition-colors shadow-[inset_2px_2px_0_rgba(0,0,0,0.15)]"
-            aria-label="騾夂衍"
+            aria-label="通知"
           >
             <Bell size={17} />
           </button>
@@ -63,7 +83,7 @@ export default function Header() {
           >
             <QrCode size={16} />
             <span className="hidden sm:inline">
-              {isLoggedIn ? 'ログイン済' : '読込・登録'}
+              {isLoggedIn ? 'スキャン済' : '読込・登録'}
             </span>
           </motion.button>
         </div>

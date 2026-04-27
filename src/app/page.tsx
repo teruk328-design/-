@@ -7,6 +7,7 @@ import QuestBoard from '@/components/quest/QuestBoard';
 import StampCard from '@/components/stamp/StampCard';
 import Gacha from '@/components/gacha/Gacha';
 import QRScanner from '@/components/qr/QRScanner';
+import { useGuild } from '@/contexts/GuildContext';
 
 /* ============================================================
    ヒーローセクション
@@ -96,6 +97,8 @@ function HeroSection() {
    会員証セクション
    ============================================================ */
 function MemberSection() {
+  const { member } = useGuild();
+
   return (
     <section className="relative px-4 py-8">
       <div className="max-w-5xl mx-auto">
@@ -105,7 +108,7 @@ function MemberSection() {
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.7, delay: 0.2 }}
-            className="w-full lg:w-auto lg:flex-shrink-0"
+            className="w-full lg:w-[480px] flex-shrink-0 flex justify-center"
           >
             <MemberCard />
           </motion.div>
@@ -129,22 +132,24 @@ function MemberSection() {
               経験値を積んでレベルアップし、上位の役職を目指しましょう！
             </p>
 
-            {/* 役職説明 (ドット絵風ソリッドカラー) */}
-            <div className="grid grid-cols-2 gap-3 text-sm">
+            {/* 役職説明 */}
+            <div className="grid grid-cols-2 gap-3 text-sm mb-6">
               {[
-                { rank: '旅人', color: '#8b9bb4', desc: '入会したての仲間' },
-                { rank: '職人', color: '#4285f4', desc: 'スキルを磨く者' },
-                { rank: '冒険者', color: '#ea4335', desc: '果敢に挑む挑戦者' },
-                { rank: '開拓者', color: '#dfa837', desc: '道を切り拓く者' },
+                { rank: '勇者', color: '#ef4444', desc: '果敢に挑む挑戦者' },
+                { rank: '魔術師', color: '#a855f7', desc: '知識を力に変える者' },
+                { rank: '学者', color: '#3b82f6', desc: '知を求め探究する者' },
+                { rank: '画家', color: '#f97316', desc: '世界を彩る表現者' },
+                { rank: '詩人', color: '#10b981', desc: '物語を紡ぐ表現者' },
+                { rank: '賢者', color: '#06b6d4', desc: '英知を授け導く者' },
               ].map((r) => (
                 <div
                   key={r.rank}
                   className="flex items-start gap-2 p-3 bg-[var(--bg-base)] border-2 border-[var(--border-shade)] shadow-[inset_2px_2px_0_rgba(0,0,0,0.1),2px_2px_0_rgba(0,0,0,0.1)]"
                 >
-                  <span className="font-bold text-xs mt-0.5 px-2 py-0.5 text-[#fff] border-[1px] border-[#000]" style={{ backgroundColor: r.color, textShadow: '1px 1px 0 #000' }}>
+                  <span className="font-bold text-[10px] mt-0.5 px-2 py-0.5 text-[#fff] border-[1px] border-[#000] whitespace-nowrap" style={{ backgroundColor: r.color, textShadow: '1px 1px 0 #000' }}>
                     {r.rank}
                   </span>
-                  <span className="text-[11px] text-[#ebdacf] font-bold mt-0.5">{r.desc}</span>
+                  <span className="text-[10px] text-[#ebdacf] font-bold mt-0.5">{r.desc}</span>
                 </div>
               ))}
             </div>

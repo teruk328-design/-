@@ -1,25 +1,34 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { applyRolesToMember } from '@/utils/roleMapper';
 
 /* ============================================================
    型定義
    ============================================================ */
-export type Rank = '旅人' | '職人' | '冒険者' | '開拓者';
+export type Rank = '学者' | '勇者' | '魔術師' | '画家' | '詩人' | '賢者';
 
 export interface Skill {
+  category: string; // 大まかな分類
   name: string;
   level: number; // 0–100
   color: string;
+  rating?: number;    // 星評価（ベイズ平均）
+  evalCount?: number; // 評価件数
 }
 
 export interface Member {
   name: string;
   rank: Rank;
+  mainJob: Rank;
+  subJob: Rank | null;  // null = サブジョブなし
+  isVisitor: boolean;   // true = ギルドロールなし（訪問者）
   level: number;
   xp: number;
   maxXp: number;
   skills: Skill[];
+  tags: string[];       // 自分で設定した特技・タグ
   joinDate: string;
   id: string;
 }
@@ -48,6 +57,7 @@ export interface GuildState {
   processBaseCheckIn: () => { success: boolean; message: string };
   completeQuest: (id: string) => void;
   spinGacha: () => GachaResult | null;
+  updateProfile: (data: { name?: string; tags?: string[]; last_check_in_date?: string }) => Promise<void>;
 }
 
 export interface GachaResult {
@@ -57,28 +67,29 @@ export interface GachaResult {
   rarity: 'common' | 'rare' | 'epic';
 }
 
-/* ============================================================
-   初期データ
-   ============================================================ */
 const INITIAL_MEMBER: Member = {
-  id: 'guild-001',
-  name: '冒険者 テスト',
-  rank: '冒険者',
-  level: 12,
-  xp: 680,
-  maxXp: 1000,
-  joinDate: '2024-04-01',
+  id: 'guest',
+  name: '冒険者',
+  rank: '勇者',
+  mainJob: '勇者',
+  subJob: null,
+  isVisitor: true,
+  level: 1,
+  xp: 0,
+  maxXp: 100,
+  joinDate: new Date().toISOString(),
+  tags: [],
   skills: [
-    { name: '勉強', level: 60, color: '#6366f1' },
-    { name: 'デザイン', level: 50, color: '#f97316' },
-    { name: 'コーディング', level: 60, color: '#3b82f6' },
-    { name: '添削', level: 50, color: '#10b981' },
-    { name: 'カメラマン', level: 66, color: '#ec4899' },
-    { name: '買い物代行', level: 50, color: '#f59e0b' },
-    { name: '運搬', level: 33, color: '#64748b' },
-    { name: '翻訳', level: 33, color: '#06b6d4' },
-    { name: 'エンジニア', level: 50, color: '#8b5cf6' },
-    { name: 'デバイス', level: 50, color: '#94a3b8' },
+    { category: '学習', name: '勉強', level: 0, color: '#6366f1' },
+    { category: 'クリエイティブ', name: 'デザイン', level: 0, color: '#f97316' },
+    { category: '開発', name: 'コーディング', level: 0, color: '#3b82f6' },
+    { category: '添削', name: '添削', level: 0, color: '#ec4899' },
+    { category: '運営', name: 'イベントスタッフ', level: 0, color: '#8b5cf6' },
+    { category: 'サポート', name: '運搬', level: 0, color: '#64748b' },
+    { category: '語学', name: '翻訳', level: 0, color: '#06b6d4' },
+    { category: '技術', name: 'エンジニア・デバイス', level: 0, color: '#a855f7' },
+    { category: '生活', name: '生活', level: 0, color: '#10b981' },
+    { category: 'その他', name: 'その他', level: 0, color: '#94a3b8' },
   ],
 };
 
@@ -158,6 +169,65 @@ export function GuildProvider({ children }: { children: React.ReactNode }) {
   const [qrScannerOpen, setQrScannerOpen] = useState(false);
   const [lastBaseCheckIn, setLastBaseCheckIn] = useState<string | null>(null);
 
+  const { data: session } = useSession();
+
+  // Discordからクエストを取得
+  useEffect(() => {
+    fetch('/api/quests/discord')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setQuests(data);
+        }
+      })
+      .catch(err => console.error('Failed to fetch Discord quests:', err));
+  }, []);
+
+  // セッションが変わった（Discordログインした）時にロールと名前を反映する
+  useEffect(() => {
+    if (session?.user) {
+      const discordName = session.user.name || session.user.email || '';
+      const roles = ((session.user as any).roles as string[]) || [];
+
+      // 1. まず名前とロールを反映したメンバー情報を作る
+      const baseMember: Member = discordName ? { ...member, name: discordName } : member;
+      let updatedMember = roles.length > 0 ? applyRolesToMember(roles, baseMember) : baseMember;
+
+      // 2. スキル統計（DBからの実働データ）を取得
+      const fetchStats = fetch(`/api/member/stats/${encodeURIComponent(discordName)}`).then(res => res.json());
+      
+      // 3. プロフィール（タグなど）を取得
+      const fetchProfile = fetch('/api/profile').then(res => res.json());
+
+      Promise.all([fetchStats, fetchProfile]).then(([stats, profile]) => {
+        let finalSkills = updatedMember.skills;
+        if (Array.isArray(stats)) {
+          finalSkills = updatedMember.skills.map(skill => {
+            const stat = stats.find(s => s.skill_name === skill.name);
+            return stat ? { ...skill, level: stat.level, rating: stat.rating, evalCount: stat.count } : skill;
+          });
+        }
+
+        setMember({
+          ...updatedMember,
+          name: profile?.display_name || discordName,
+          tags: profile?.tags || [],
+          skills: finalSkills,
+          id: profile?.discord_id || updatedMember.id
+        });
+
+        if (profile?.last_check_in_date) {
+          setLastBaseCheckIn(profile.last_check_in_date);
+        }
+      }).catch(err => {
+        console.error('Data fetch error:', err);
+        setMember(updatedMember);
+      });
+
+      setIsLoggedIn(true);
+    }
+  }, [session]);
+
   const addXp = useCallback((amount: number) => {
     setMember((prev) => {
       let newXp = prev.xp + amount;
@@ -193,18 +263,59 @@ export function GuildProvider({ children }: { children: React.ReactNode }) {
     setGachaAvailable(true);
   }, []);
 
+  const updateProfile = useCallback(async (data: { name?: string; tags?: string[]; last_check_in_date?: string }) => {
+    try {
+      const res = await fetch('/api/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          display_name: data.name,
+          tags: data.tags,
+          last_check_in_date: data.last_check_in_date
+        }),
+      });
+      if (res.ok) {
+        const result = await res.json();
+        setMember(prev => ({
+          ...prev,
+          name: result.data.display_name || prev.name,
+          tags: result.data.tags || prev.tags
+        }));
+      }
+    } catch (err) {
+      console.error('Profile update failed:', err);
+    }
+  }, []);
+
   const processBaseCheckIn = useCallback(() => {
-    const today = new Date().toLocaleDateString();
-    if (lastBaseCheckIn === today) {
-      return { success: false, message: '本日の拠点ボーナスは既に獲得済みです！' };
+    if (!isLoggedIn || member.name === '冒険者') {
+      return { success: false, message: '拠点チェックインには Discord ログインが必要です！' };
     }
 
-    addXp(2); // 経験値+2
-    addStamp(); // ログインボーナスも兼ねる
+    const today = new Date().toLocaleDateString('ja-JP');
+    if (lastBaseCheckIn === today) {
+      return { success: false, message: '本日の拠点ボーナスは獲得済みです！' };
+    }
+
+    addXp(2);
+    addStamp();
     setLastBaseCheckIn(today);
     
+    // DBにチェックイン日を保存
+    updateProfile({ last_check_in_date: today });
+    
+    // Discordに通知を飛ばす
+    fetch('/api/notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userName: member.name,
+        message: `**${member.name}** が拠点にチェックインしました！📍`
+      }),
+    }).catch(err => console.error('Notify error:', err));
+    
     return { success: true, message: '拠点到着！経験値+2 ボーナス獲得！' };
-  }, [addXp, addStamp, lastBaseCheckIn]);
+  }, [isLoggedIn, member.name, addXp, addStamp, lastBaseCheckIn, updateProfile]);
 
   const completeQuest = useCallback((id: string) => {
     setQuests((prev) =>
@@ -225,6 +336,7 @@ export function GuildProvider({ children }: { children: React.ReactNode }) {
     return GACHA_TABLE[5];
   }, [gachaAvailable]);
 
+
   return (
     <GuildContext.Provider
       value={{
@@ -240,6 +352,7 @@ export function GuildProvider({ children }: { children: React.ReactNode }) {
         processBaseCheckIn,
         completeQuest,
         spinGacha,
+        updateProfile,
       }}
     >
       {children}
