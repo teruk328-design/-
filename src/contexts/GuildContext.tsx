@@ -24,9 +24,6 @@ export interface Member {
   mainJob: Rank;
   subJob: Rank | null;  // null = サブジョブなし
   isVisitor: boolean;   // true = ギルドロールなし（訪問者）
-  level: number;
-  xp: number;
-  maxXp: number;
   skills: Skill[];
   tags: string[];       // 自分で設定した特技・タグ
   joinDate: string;
@@ -38,10 +35,10 @@ export interface Quest {
   title: string;
   description: string;
   reward: string;
-  xp: number;
   difficulty: 'E' | 'D' | 'C' | 'B' | 'A' | 'S';
   category: 'みつける' | 'たかめる' | 'つながる' | 'つむぐ' | 'ひらく';
   completed: boolean;
+  link?: string;
 }
 
 export interface GuildState {
@@ -53,7 +50,6 @@ export interface GuildState {
   qrScannerOpen: boolean;
   setQrScannerOpen: (open: boolean) => void;
   addStamp: () => void;
-  addXp: (amount: number) => void;
   processBaseCheckIn: () => { success: boolean; message: string };
   completeQuest: (id: string) => void;
   spinGacha: () => GachaResult | null;
@@ -74,9 +70,6 @@ const INITIAL_MEMBER: Member = {
   mainJob: '勇者',
   subJob: null,
   isVisitor: true,
-  level: 1,
-  xp: 0,
-  maxXp: 100,
   joinDate: new Date().toISOString(),
   tags: [],
   skills: [
@@ -99,27 +92,26 @@ const INITIAL_QUESTS: Quest[] = [
     title: 'ギルドの掲示板を確認せよ',
     description: '毎週の告知やイベント情報をチェックしよう',
     reward: 'ギルドポイント×50',
-    xp: 50,
     difficulty: 'E',
     category: 'みつける',
     completed: false,
+    link: 'https://discord.com/channels/1492770006994522282/1497872024171708526',
   },
   {
     id: 'q-002',
     title: '新しい仲間に話しかけよ',
     description: '今月入会したメンバーと交流しよう',
     reward: '「交友家」称号',
-    xp: 120,
     difficulty: 'D',
     category: 'つながる',
     completed: false,
+    link: 'https://discord.com/channels/1492770006994522282/1497872024171708526',
   },
   {
     id: 'q-003',
     title: 'スキル講習会に参加せよ',
     description: '動画編集 or コーディングのワークショップに参加',
     reward: 'スキルポイント×100',
-    xp: 200,
     difficulty: 'C',
     category: 'たかめる',
     completed: true,
@@ -129,20 +121,20 @@ const INITIAL_QUESTS: Quest[] = [
     title: '外部コンテストに挑戦せよ',
     description: 'ハッカソンやデザインコンテストに参加する',
     reward: '「挑戦者」称号 + ギルドポイント×300',
-    xp: 500,
     difficulty: 'B',
     category: 'ひらく',
     completed: false,
+    link: 'https://discord.com/channels/1492770006994522282/1497872024171708526',
   },
   {
     id: 'q-005',
     title: 'ナレッジを共有せよ',
     description: '勉強したことをLT（ライトニングトーク）で発表',
     reward: '「語り部」称号',
-    xp: 350,
     difficulty: 'C',
     category: 'つむぐ',
     completed: false,
+    link: 'https://discord.com/channels/1492770006994522282/1497872024171708526',
   },
 ];
 
@@ -228,28 +220,7 @@ export function GuildProvider({ children }: { children: React.ReactNode }) {
     }
   }, [session]);
 
-  const addXp = useCallback((amount: number) => {
-    setMember((prev) => {
-      let newXp = prev.xp + amount;
-      let newLevel = prev.level;
-      let newMaxXp = prev.maxXp;
 
-      // レベルアップロジック
-      while (newXp >= newMaxXp) {
-        newXp -= newMaxXp;
-        newLevel += 1;
-        // 次のレベルへの必要経験値を少し増やす (例: 10%増)
-        newMaxXp = Math.floor((newMaxXp * 1.1) / 10) * 10;
-      }
-
-      return {
-        ...prev,
-        xp: newXp,
-        level: newLevel,
-        maxXp: newMaxXp,
-      };
-    });
-  }, []);
 
   const addStamp = useCallback(() => {
     setStamps((prev) => {
@@ -297,7 +268,7 @@ export function GuildProvider({ children }: { children: React.ReactNode }) {
       return { success: false, message: '本日の拠点ボーナスは獲得済みです！' };
     }
 
-    addXp(2);
+
     addStamp();
     setLastBaseCheckIn(today);
     
@@ -314,8 +285,8 @@ export function GuildProvider({ children }: { children: React.ReactNode }) {
       }),
     }).catch(err => console.error('Notify error:', err));
     
-    return { success: true, message: '拠点到着！経験値+2 ボーナス獲得！' };
-  }, [isLoggedIn, member.name, addXp, addStamp, lastBaseCheckIn, updateProfile]);
+    return { success: true, message: '拠点到着！' };
+  }, [isLoggedIn, member.name, addStamp, lastBaseCheckIn, updateProfile]);
 
   const completeQuest = useCallback((id: string) => {
     setQuests((prev) =>
@@ -348,7 +319,7 @@ export function GuildProvider({ children }: { children: React.ReactNode }) {
         qrScannerOpen,
         setQrScannerOpen,
         addStamp,
-        addXp,
+
         processBaseCheckIn,
         completeQuest,
         spinGacha,

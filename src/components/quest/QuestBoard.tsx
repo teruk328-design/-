@@ -93,14 +93,30 @@ export default function QuestBoard() {
                       <Star size={9} className="text-[var(--gold)]" />
                       {quest.reward}
                     </span>
-                    <span className="text-[10px] font-bold text-[var(--xp-green)] ml-auto">
-                      +{quest.xp} XP
-                    </span>
                   </div>
                 </div>
               </div>
 
-              {!quest.completed && (
+              {!quest.completed && quest.link && (
+                <motion.a
+                  href={quest.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 rounded-sm border-2 text-xs font-bold transition-all duration-200"
+                  style={{
+                    background: `${catColor}15`,
+                    border: `1px solid ${catColor}30`,
+                    color: catColor,
+                  }}
+                >
+                  <Clock size={12} />
+                  依頼の詳細を見る
+                  <ChevronRight size={12} />
+                </motion.a>
+              )}
+              {!quest.completed && !quest.link && (
                 <motion.button
                   id={`quest-accept-${quest.id}`}
                   whileHover={{ scale: 1.02 }}

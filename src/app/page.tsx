@@ -62,32 +62,7 @@ function HeroSection() {
           </span>
         </motion.p>
 
-        {/* ステータスバー (厚い枠のパネル) */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-          className="flex flex-wrap items-center justify-center gap-4 text-sm"
-        >
-          {[
-            { icon: <Users size={14} />, label: '集いし勇者', value: '42' },
-            { icon: <Sword size={14} />, label: '踏破クエスト', value: '128' },
-            { icon: <Zap size={14} />, label: 'ギルド貢献度', value: '48,200' },
-          ].map((stat) => (
-            <div
-              key={stat.label}
-              className="flex items-center gap-3 px-5 py-2.5 rpg-card bg-[var(--bg-card)]"
-            >
-              <div className="w-8 h-8 flex items-center justify-center relative bg-[var(--bg-base)] border-2 border-[var(--border-shade)] shadow-[inset_2px_2px_0_rgba(0,0,0,0.2)]">
-                <div className="relative text-[var(--gold-dark)]" style={{ zIndex: 1 }}>{stat.icon}</div>
-              </div>
-              <div className="flex flex-col text-left leading-tight">
-                <span className="text-[10px] text-[var(--gold-dark)] font-bold">{stat.label}</span>
-                <span className="font-bold text-[var(--gold-light)] font-rpg tracking-wider text-base" style={{ textShadow: '1px 1px 0 #000' }}>{stat.value}</span>
-              </div>
-            </div>
-          ))}
-        </motion.div>
+
       </div>
     </section>
   );
@@ -129,7 +104,7 @@ function MemberSection() {
             </h2>
             <p className="text-[#ebdacf] font-bold text-sm leading-relaxed mb-6">
               カードをタップすると裏面に習得スキルが表示されます。
-              経験値を積んでレベルアップし、上位の役職を目指しましょう！
+              日々の活動を通じて、自分のスキルを磨いていきましょう！
             </p>
 
             {/* 役職説明 */}

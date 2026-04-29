@@ -80,7 +80,7 @@ const VISITOR_CONFIG = {
 function CardFront() {
   const { member } = useGuild();
   const config = member.isVisitor ? VISITOR_CONFIG : RANK_CONFIG[member.rank];
-  const xpPercent = Math.round((member.xp / member.maxXp) * 100);
+
 
   if (member.isVisitor) {
     return (
@@ -180,17 +180,7 @@ function CardFront() {
                   className="object-cover"
                   style={{ imageRendering: 'pixelated' }}
                 />
-                {/* レベルバッジ */}
-                <div
-                  className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black z-10"
-                  style={{
-                    background: config.color,
-                    color: '#050a14',
-                    boxShadow: `0 0 8px ${config.color}80`,
-                  }}
-                >
-                  {member.level}
-                </div>
+
               </div>
               <span className="text-[8px] font-bold tracking-wider" style={{ color: config.color }}>MAIN</span>
             </div>
@@ -243,23 +233,7 @@ function CardFront() {
               )}
             </div>
 
-            {/* XPバー */}
-            <div className="w-full mb-3">
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-[10px] text-[#cfbeaf]">EXP</span>
-                <span className="text-[10px] font-bold" style={{ color: config.color }}>
-                  {member.xp} / {member.maxXp}
-                </span>
-              </div>
-              <div className="xp-bar h-1.5">
-                <motion.div
-                  className="xp-bar-fill"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${xpPercent}%` }}
-                  transition={{ duration: 1.2, ease: 'easeOut', delay: 0.3 }}
-                />
-              </div>
-            </div>
+
 
             {/* 特技タグ (Tags) */}
             <div className="flex flex-wrap gap-1.5 mt-1">
